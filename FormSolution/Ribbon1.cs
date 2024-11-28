@@ -52,6 +52,10 @@ namespace FormSolution
                             if (c == '\n')
                             {
                                 currentCell = MoveToNextCellOrAddRow(currentCell);
+                                                                if (currentCell == null)
+                                {
+                                    break;
+                                }
                                 continue;
                             }
 
@@ -98,25 +102,41 @@ namespace FormSolution
         {
             try
             {
-                // 如果当前单元格有下一列，直接返回下一列
+                Word.Cell newCell;
+                // 获取当前单元格的表格和行
+                Word.Table table = currentCell.Range.Tables[1];
+                Word.Row currentRow = currentCell.Row;
+                // 如果当前单元格有下一行，直接返回下一行
                 if (currentCell.Next != null)
                 {
-                    currentCell.Next.Select();
-                    return currentCell.Next;
+                    Word.Cell nextCell = currentRow.Cells[currentRow.Cells.Count].Next;
+                    // 检查下一行是否有内容
+                    if (string.IsNullOrEmpty(nextCell.Range.Text.Trim().Replace("\a", "")))
+                    {
+                        currentCell.Next.Select();
+                        return currentCell.Next;
+                    } else
+                    {
+                        // 在当前行下方添加新行
+                        Word.Row newRow = table.Rows.Add(currentRow.Next);
+
+                        // 获取新行的第一个单元格
+                        newCell = newRow.Cells[1];
+
+                        // 移动光标到新行的第一个单元格
+                        newCell.Select();
+                        return newCell;
+                    }
                 }
 
-                // 当前单元格没有下一列，则检查是否为最后一行
-                Word.Table table = currentCell.Range.Tables[1]; // 获取当前单元格所在的表格
-                Word.Row currentRow = currentCell.Row; // 获取当前单元格所在的行
-
-                // 如果当前行是表格的最后一行，则新增一行
+                // 检查是否为最后一行，若是则新增一行
                 if (currentRow.IsLast)
                 {
                     table.Rows.Add(); // 在表格末尾新增一行
                 }
 
                 // 移动到新增行的第一个单元格
-                Word.Cell newCell = table.Rows[table.Rows.Count].Cells[1];
+                newCell = table.Rows[table.Rows.Count].Cells[1];
                 newCell.Select();
                 return newCell;
             }
@@ -142,6 +162,7 @@ namespace FormSolution
                 // 获取当前 Word 应用程序实例和选区
                 Word.Application application = Globals.ThisAddIn.Application;
                 Word.Selection selection = application.Selection;
+
                 // 记录插入前的光标起始位置
                 int initialPosition = selection.Range.Start;
 
