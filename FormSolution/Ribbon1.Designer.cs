@@ -53,7 +53,7 @@
             // group1
             // 
             this.group1.Items.Add(this.button1);
-            this.group1.Label = "表格处理 1.0.1";
+            this.group1.Label = "表格处理";
             this.group1.Name = "group1";
             // 
             // button1
