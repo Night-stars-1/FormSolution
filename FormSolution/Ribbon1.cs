@@ -1,6 +1,5 @@
 ﻿using Microsoft.Office.Tools.Ribbon;
 using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Word = Microsoft.Office.Interop.Word;
@@ -41,7 +40,7 @@ namespace FormSolution
                     // 清空单元格内容
                     currentCell.Range.Text = string.Empty;
                     var text = loginForm.InputText.Replace("\r", "");
-                    Debug.WriteLine(text);
+
                     ProgressForm progressForm = new ProgressForm();
 
                     // 使任务完成后关闭等待框
@@ -52,7 +51,7 @@ namespace FormSolution
                             if (c == '\n')
                             {
                                 currentCell = MoveToNextCellOrAddRow(currentCell);
-                                                                if (currentCell == null)
+                                if (currentCell == null)
                                 {
                                     break;
                                 }
@@ -122,6 +121,12 @@ namespace FormSolution
 
                         // 获取新行的第一个单元格
                         newCell = newRow.Cells[1];
+
+                        // 关闭粗体
+                        newCell.Range.Font.Bold = 0;
+
+                        // 取消编号
+                        newCell.Range.ListFormat.RemoveNumbers();
 
                         // 移动光标到新行的第一个单元格
                         newCell.Select();
