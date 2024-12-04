@@ -248,6 +248,7 @@ namespace FormSolution
                             {
                                 // 判断是否换行
                                 bool isLineFeed = false;
+                                Debug.WriteLine(Math.Min(InputLength, charList.Count - charIndex));
                                 // 10 -> 9 -> 8，8长度的字符，触发表格单元格不换行，则退出循环
                                 while (HasCursorHeightChangedAfterTyping(string.Join("", charList.GetRange(charIndex, Math.Min(InputLength, charList.Count - charIndex)))))
                                 {
@@ -258,7 +259,7 @@ namespace FormSolution
                                 }
                                 // 表格输入成功
                                 // 将起始字符调整为，已读取字符之后
-                                charIndex += InputLength + 1;
+                                charIndex += InputLength;
                                 if (charIndex >= charList.Count)
                                 {
                                     break;
@@ -280,13 +281,9 @@ namespace FormSolution
                                     }
                                     // 退出循环，字符换行，因换行字符被删除，所以输入宽度-1
                                     InputLength--;
-                                    // 表格换行
-                                    currentCell = MoveToNextCellOrAddRow(currentCell);
-                                    //if (charIndex + InputLength > charList.Count)
-                                    //{
-                                    //    InputLength = charList.Count - charIndex;
-                                    //}
                                 }
+                                // 表格换行
+                                currentCell = MoveToNextCellOrAddRow(currentCell);
                             }
                             currentCell = MoveToNextCellOrAddRow(currentCell);
                         }
