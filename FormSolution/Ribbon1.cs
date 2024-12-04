@@ -1,13 +1,18 @@
 ﻿using Microsoft.Office.Tools.Ribbon;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Word = Microsoft.Office.Interop.Word;
 
 namespace FormSolution
 {
+
     public partial class Ribbon1
     {
+        private int InputLength = 38;
+
         private void Ribbon1_Load(object sender, RibbonUIEventArgs e)
         {
 
@@ -31,15 +36,15 @@ namespace FormSolution
                 {
                     var currentCell = selection.Cells[1];
 
-                    Form1 loginForm = new Form1();
+                    Form1 inputForm = new Form1();
 
-                    if (loginForm.ShowDialog() != DialogResult.OK)
+                    if (inputForm.ShowDialog() != DialogResult.OK)
                     {
                         return;
                     }
                     // 清空单元格内容
                     currentCell.Range.Text = string.Empty;
-                    var text = loginForm.InputText.Replace("\r", "");
+                    var text = inputForm.InputText.Replace("\r", "");
 
                     ProgressForm progressForm = new ProgressForm();
 
@@ -189,7 +194,6 @@ namespace FormSolution
                     Word.Range insertedRange = selection.Document.Range(initialPosition, initialPosition + inputText.Length);
                     insertedRange.Delete(); // 删除刚刚插入的文本
                 }
-
                 return hasChanged;
             }
             catch (Exception ex)
@@ -197,6 +201,115 @@ namespace FormSolution
                 // 异常处理并返回 false
                 MessageBox.Show($"发生错误: {ex.Message}");
                 return false;
+            }
+        }
+
+        private void button2_Click(object sender, RibbonControlEventArgs e)
+        {
+            AutoLengthInput();
+        }
+
+        private void AutoLengthInput()
+        {
+            Word.Application app = Globals.ThisAddIn.Application;
+
+            try
+            {
+                Word.Selection selection = app.Selection;
+
+                // 确保当前选中的是表格单元格
+                if (selection.Information[Word.WdInformation.wdWithInTable])
+                {
+                    var currentCell = selection.Cells[1];
+
+                    Form1 inputForm = new Form1();
+
+                    if (inputForm.ShowDialog() != DialogResult.OK)
+                    {
+                        return;
+                    }
+                    // 清空单元格内容
+                    currentCell.Range.Text = string.Empty;
+                    var text = inputForm.InputText.Replace("\r", "");
+
+                    var lines = text.Split('\n');
+
+                    ProgressForm progressForm = new ProgressForm();
+
+                    // 使任务完成后关闭等待框
+                    Task backgroundTask = Task.Run(() =>
+                    {
+                        foreach (string line in lines)
+                        {
+                            int charIndex = 0;
+                            Debug.WriteLine(line);
+                            List<char> charList = new List<char>(line);
+                            while (charIndex < charList.Count - 1)
+                            {
+                                // 判断是否换行
+                                bool isLineFeed = false;
+                                // 10 -> 9 -> 8，8长度的字符，触发表格单元格不换行，则退出循环
+                                while (HasCursorHeightChangedAfterTyping(string.Join("", charList.GetRange(charIndex, Math.Min(InputLength, charList.Count - charIndex)))))
+                                {
+                                    // 如果换行
+                                    isLineFeed = true;
+                                    // 添加字符宽度
+                                    InputLength--;
+                                }
+                                // 表格输入成功
+                                // 将起始字符调整为，已读取字符之后
+                                charIndex += InputLength + 1;
+                                if (charIndex >= charList.Count)
+                                {
+                                    break;
+                                }
+                                if (!isLineFeed)
+                                {
+                                    // 如果表格未换行，逐个输入，直到换行后结束
+                                    // 每次输入1个字符，1 -> 2 -> 3，直到触发表格单元格换行，退出循环
+                                    while (!HasCursorHeightChangedAfterTyping(string.Join("", charList.GetRange(charIndex, 1))))
+                                    {
+                                        // 如果没换行
+                                        // 字符被输入，索引+1
+                                        charIndex++;
+                                        InputLength++;
+                                        if (charIndex >= charList.Count)
+                                        {
+                                            break;
+                                        }
+                                    }
+                                    // 退出循环，字符换行，因换行字符被删除，所以输入宽度-1
+                                    InputLength--;
+                                    // 表格换行
+                                    currentCell = MoveToNextCellOrAddRow(currentCell);
+                                    //if (charIndex + InputLength > charList.Count)
+                                    //{
+                                    //    InputLength = charList.Count - charIndex;
+                                    //}
+                                }
+                            }
+                            currentCell = MoveToNextCellOrAddRow(currentCell);
+                        }
+                    });
+
+                    // 显示等待框，并等待任务完成
+                    progressForm.Shown += async (sender, args) =>
+                    {
+                        // 等待任务完成后关闭窗口
+                        await backgroundTask;
+                        progressForm.Close();
+                    };
+
+                    progressForm.ShowDialog();
+                }
+                else
+                {
+                    MessageBox.Show("请先选择一个表格单元格");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"发生错误: {ex.Message}");
             }
         }
     }
